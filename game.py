@@ -1,4 +1,5 @@
 import random
+import sys
 from square import SquareAbstract
 from square import Square
 
@@ -18,10 +19,76 @@ class Game(SquareAbstract):
     for x in xrange(0,3):
       for y in xrange(0,3):
         self.fields[x][y].calculatePossible()
-  
-  #solve that current state (is it even solvable?)
+
   def solve(self):
-    pass
+  
+    while not self.solved():
+      next = {0 : None, 1 : None, 2 : None, 3 : None}
+      currentPossible = 0
+      for x in xrange(0,3):
+        for y in xrange(0,3):
+          square = self.fields[x][y]
+          for xf in xrange(0,3):
+            for yf in xrange(0,3):
+              if square.fields[xf][yf] is None: #field should
+                possible = square.possible[xf][yf]
+                if possible is not None and possible > currentPossible:
+                  next[0] = x
+                  next[1] = y
+                  next[2] = xf
+                  next[3] = yf
+      
+      if next[0] is None:
+        print "running in deadlock"
+        print repr(self)
+        sys.exit(1)
+      
+      item = self.fields[next[0]][next[1]]
+      bestsol = 0
+      bestnum = None
+      for testnumber in xrange(1,10):
+        if item.set(next[2],next[3],testnumber): #must be true, so that this move is allowed
+          testsol = self.weighting()
+          if testsol > bestsol:
+            bestsol = testsol
+            bestnum = testnumber
+          item.set(next[2],next[3],None) #reset for next loop
+          print repr(self)
+      
+      if bestnum is None:
+        print "running in deadlock"
+        print repr(self)
+        sys.exit(1)
+      
+      #set found number
+      item.set(next[2],next[3],bestnum)
+    
+    print "solved"
+    repr(self)
+
+  def solved(self):
+    for x in xrange(0,3):
+      for y in xrange(0,3):
+        square = self.fields[x][y]
+        for xf in xrange(0,3):
+          for yf in xrange(0,3):
+            if square.fields[xf][yf] is None:
+              return False
+    return True
+
+  def weighting(self):
+    weight = 0
+    for x in xrange(0,3):
+      for y in xrange(0,3):
+        square = self.fields[x][y]
+        for xf in xrange(0,3):
+          for yf in xrange(0,3):
+            possible = square.possible[xf][yf]
+            if possible is None:
+              weight += 9
+            else:
+              weight += possible
+    return weight
   
   #print out representation of square
   def __repr__(self):
@@ -53,21 +120,6 @@ class Game(SquareAbstract):
       
 if __name__ == '__main__':
   game = Game()
-  
-  #play it :)
-  item = game.fields[0][0]
-  item.set(0,0,1)
-  item.set(0,1,1) #will not be succesfull
-  item.set(0,1,2)
-  
-  item = game.fields[2][2]
-  item.set(2,2,2)
-
-  item = game.fields[0][2]
-  item.set(2,2,6)
-  
-  item = game.fields[1][1]
-  item.set(1,1,7)
-  
   game.calculatePossible()
+  game.solve()
   
